@@ -12,6 +12,8 @@ import {
   TextField,
   Grid,
   IconButton,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { Add as AddIcon, ArrowBack as ArrowBackIcon, ArrowForward as ArrowForwardIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
@@ -24,7 +26,8 @@ const DocumentUpload = () => {
   const [applicants, setApplicants] = useState([]);
   const [currentApplicantIndex, setCurrentApplicantIndex] = useState(0);
   const [currentDocIndex, setCurrentDocIndex] = useState(0);
-
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
   useEffect(() => {
  
     if (applicants.length > 0 && currentApplicantIndex === 0) {
@@ -50,6 +53,7 @@ const DocumentUpload = () => {
 
   const handleApplicantNameChange = (event) => {
     setApplicantName(event.target.value);
+    setFile('');
   };
 
   const handleSaveApplicant = () => {
@@ -83,14 +87,14 @@ const DocumentUpload = () => {
       file: file, 
     };
   
-    // Update the documents array with the updated document
+    
     currentApplicant.documents = [
       ...currentApplicant.documents.slice(0, currentDocIndex),
-      updatedDocument, // Replace the old document with the updated one
+      updatedDocument, 
       ...currentApplicant.documents.slice(currentDocIndex + 1),
     ];
   
-    // Update the applicants state with the modified applicant
+  
     setApplicants(updatedApplicants);
   
     // Clear the file state
@@ -99,34 +103,61 @@ const DocumentUpload = () => {
   
 
   const handleNext = () => {
-    // Get the current applicant's documents
     const currentApplicant = applicants[currentApplicantIndex];
     const numDocs = currentApplicant?.documents?.length || 0;
   
     if (numDocs > 0 && currentDocIndex + 1 < numDocs) {
-      // If there are more documents, move to the next document
+      // Move to the next document of the current applicant
       setCurrentDocIndex(currentDocIndex + 1);
     } else if (currentApplicantIndex + 1 < applicants.length) {
-      // If no more documents, move to the next applicant
+      // Move to the first document of the next applicant
       setCurrentApplicantIndex(currentApplicantIndex + 1);
-      setCurrentDocIndex(0); // Reset document index to 0 for the new applicant
+      setCurrentDocIndex(0);
     }
   };
+  const isNextDisabled = () => {
+    if (applicants.length === 0) {
+      return true;
+    }
+  
+    const currentApplicant = applicants[currentApplicantIndex];
+    const numDocs = currentApplicant?.documents?.length || 0;
+  
+    if (currentApplicantIndex === applicants.length - 1 && currentDocIndex === numDocs - 1) {
+      return true; // Disable if on the last document of the last applicant
+    }
+  
+    return false;
+  };
+  
 
   const handleBack = () => {
     const currentApplicant = applicants[currentApplicantIndex];
     const numDocs = currentApplicant?.documents?.length || 0;
   
     if (numDocs > 0 && currentDocIndex > 0) {
-    
+      // Move to the previous document of the current applicant
       setCurrentDocIndex(currentDocIndex - 1);
     } else if (currentApplicantIndex > 0) {
-     
-      setCurrentApplicantIndex(currentApplicantIndex - 1);
+      // Move to the last document of the previous applicant
       const previousApplicant = applicants[currentApplicantIndex - 1];
       const previousDocIndex = previousApplicant?.documents?.length - 1;
-      setCurrentDocIndex(previousDocIndex); 
+      setCurrentApplicantIndex(currentApplicantIndex - 1);
+      setCurrentDocIndex(previousDocIndex);
     }
+  };
+  
+  // Determine if the Back button should be disabled
+  const isBackDisabled = () => {
+    if (applicants.length === 0) {
+      return true;
+    }
+  
+    if (currentApplicantIndex === 0 && currentDocIndex === 0) {
+      return true; // Disable if on the first document of the first applicant
+    }
+  
+    return false;
   };
   
 
@@ -150,8 +181,7 @@ const DocumentUpload = () => {
       }
       return applicant; 
     });
-  
-    console.log("Updated Applicants:", updatedApplicants); 
+
     setApplicants(updatedApplicants); 
   };
   
@@ -175,7 +205,7 @@ const DocumentUpload = () => {
   console.log("appli",applicants[currentApplicantIndex]?.documents[currentDocIndex]?.file?.name);
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" style={{ padding: 16 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" style={{ padding: 16,marginTop:30 }}>
         <Typography variant="h6">Document Upload</Typography>
         <Button variant="contained" onClick={handleClickOpen}>
           Add Applicant
@@ -188,10 +218,13 @@ const DocumentUpload = () => {
     <Grid
       item
       xs={4}
-      sm={3}
+      sm={8}
       md={2}
       key={applicant.id}
-      onClick={() => setCurrentApplicantIndex(index)}
+      onClick={() => {
+        setCurrentApplicantIndex(index);
+        setCurrentDocIndex(0);
+      }}
     >
       <Paper
         variant="outlined"
@@ -233,30 +266,32 @@ const DocumentUpload = () => {
 
 
       {/* Documents for selected Applicant */}
-      <Box style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-around', width: '100%', alignItems: 'center' }}>
-        <Grid container spacing={2} style={{ padding: 16, maxWidth: '30%' }}>
+      <Box style={{ display: 'flex', flexDirection:isSmallScreen ? 'column':'row', justifyContent: isSmallScreen ? 'center':'space-around', width: '100%', alignItems: 'center' }}>
+        <Grid container spacing={2} style={{ padding: 16, display:'flex',justifyContent:'center',alignItems:'center', maxWidth: isSmallScreen ?'100%':'30%'}}>
           {applicants.length > 0 && (
-            <Grid item key={applicants[currentApplicantIndex]?.id}>
+            <Grid item style={{display:'flex',justifyContent:'center',alignItems:'center'}} key={applicants[currentApplicantIndex]?.id}>
               <Paper variant="outlined" style={{ padding: 16 }}>
-                <Typography variant="h6">Documents for {applicants[currentApplicantIndex]?.name}</Typography>
+                <Typography variant="h6">Documents for {applicants[currentApplicantIndex]?.documents[currentDocIndex]?.name}</Typography>
 
                 {/* Display documents for the selected applicant */}
                 {applicants[currentApplicantIndex]?.documents?.length > 0 ? (
                   <Box style={{ marginTop: 16 }}>
                     <Typography variant="body1">Uploaded Documents:</Typography>
                     {applicants[currentApplicantIndex]?.documents?.map((doc, index) => (
-                      <Grid item xs={4} sm={3} md={2} key={doc.id} onClick={() => setCurrentDocIndex(index)}>
+                      <Grid item  xs={4} key={doc.id} onClick={() => setCurrentDocIndex(index)}>
                         <Paper
                           variant="outlined"
                           style={{
                             padding: 5,
-                            backgroundColor: currentDocIndex === index ? 'green' : 'white',
+                            backgroundColor: currentDocIndex === index ? '#7c9fd9' : 'white',
                             width:'10vw',
-                            margin:'10px',
+                            marginTop:'10px',
+                            marginBottom:'10px',
+
                             color: currentDocIndex === index ? 'white' : 'black',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
+                            justifyContent: 'center',
                             textAlign: 'center',
                             position: 'relative',
                           }}
@@ -298,9 +333,11 @@ const DocumentUpload = () => {
           )}
         </Grid>
 
-        <Stack direction="row" spacing={2} style={{ padding: 16, width: '50%' }}>
+          {
+            applicants[currentApplicantIndex]?.documents.length > 0 &&  (
+        <Stack direction="row" spacing={2} style={{ padding: 16, width:'50%' }}>
           <Paper variant="outlined" style={{ padding: 16, flex: 1 }}>
-            <Typography variant="h6">Documents for {applicants[currentApplicantIndex]?.name}</Typography>
+            <Typography variant="h6">files for {applicants[currentApplicantIndex]?.documents[currentDocIndex]?.name}</Typography>
             {/* Display documents for the selected applicant */}
             {applicants[currentApplicantIndex]?.documents?.length > 0 ? (
               <Box style={{ marginTop: 16 }}>
@@ -308,16 +345,16 @@ const DocumentUpload = () => {
               </Box>
             ) : (
               <Typography variant="body2" style={{ marginTop: 16 }}>
-                No documents uploaded yet.
+                No files uploaded yet.
               </Typography>
             )}
 
             {/* File upload */}
-            <Button variant="contained" component="label" startIcon={<AddIcon />}>
+            <Button variant="contained" style={{width:isSmallScreen ? '100%':'inherit' , marginTop:isSmallScreen ? 16:0, fontSize:isSmallScreen ? '12px':'inherit'}} component="label" startIcon={<AddIcon />}>
               Choose File
               <input type="file" hidden onChange={handleFileChange} />
             </Button>
-            <Button variant="contained" disabled={!file} style={{ marginLeft: 16 , backgroundColor:!file ? 'gray':'blue'}} onClick={handleUpload}>
+            <Button variant="contained" disabled={!file} style={{ marginLeft:isSmallScreen ? 0:16,width:isSmallScreen ? '100%':'inherit', marginTop: isSmallScreen ? 16 : 0, backgroundColor:!file ? 'gray':'blue'}} onClick={handleUpload}>
               Upload
             </Button>
             {/* {file && ( */}
@@ -325,19 +362,19 @@ const DocumentUpload = () => {
                 Selected File: {file?.name || applicants[currentApplicantIndex]?.documents[currentDocIndex]?.file?.name}
               </Typography>
             {/* )} */}
-            <Box style={{ marginTop: 16 }}>
-              <Typography variant="body2">Drag and Drop files here</Typography>
-            </Box>
+           
           </Paper>
         </Stack>
+            )
+          }
       </Box>
 
       {/* Navigation buttons for switching applicants */}
       <Stack direction="row" spacing={2} justifyContent="space-between" alignItems="center" style={{ padding: 16 }}>
-        <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={handleBack} disabled={currentApplicantIndex === 0}>
+        <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={handleBack} disabled={isBackDisabled}>
           Back
         </Button>
-        <Button variant="contained" endIcon={<ArrowForwardIcon />} onClick={handleNext} disabled={currentApplicantIndex === applicants.length - 1}>
+        <Button variant="contained" endIcon={<ArrowForwardIcon />} onClick={handleNext} disabled={isNextDisabled()}>
           Next
         </Button>
       </Stack>
@@ -349,6 +386,7 @@ const DocumentUpload = () => {
           <TextField
             label="Applicant Name"
             value={applicantName}
+            style={{marginTop:6}}
             onChange={handleApplicantNameChange}
             fullWidth
             autoFocus
@@ -371,7 +409,8 @@ const DocumentUpload = () => {
           <TextField
             label="Document Name"
             value={docname}
-            onChange={handleDocNameChange} // Updated to handle doc name change
+            onChange={handleDocNameChange} 
+            style={{marginTop:5}}
             fullWidth
             autoFocus
           />
